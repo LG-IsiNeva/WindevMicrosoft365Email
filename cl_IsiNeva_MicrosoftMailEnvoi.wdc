@@ -1,0 +1,181 @@
+#To edit and compare internal_properties, use WINDEV integrated tools.
+#Internal properties refer to the properties of controls in windows, reports, etc.
+info :
+ name : cl_IsiNeva_MicrosoftMailEnvoi
+ major_version : 28
+ minor_version : 0
+ type : 4
+ description : ""
+ subtype : 0
+class :
+ identifier : 0x17d94ac7000d7c03
+ internal_properties : CAAAAAgAAAB2/vstTMCJbS/hlxjFxirSqKvCUuv8YxgpWyl7S3iA
+ code_elements :
+  type_code : 10
+  p_codes :
+   -
+     code : |1-
+      cl_IsiNeva_MicrosoftMailEnvoi est une Classe
+      	privé 
+      		
+      	//Identifiants correspondant à l'application créée sous Microsoft Entra
+      	mTenantId		est une chaine
+      	mClientID		est une chaine
+      	mClientSecret	est une chaine
+      fin
+     type : 131072
+  procedures :
+   -
+     name : Constructeur
+     procedure_id : 1718486951378451459
+     type_code : 27
+     code : |1+
+      procédure Constructeur(psTenantId est une chaine, psCLientID est une chaine, psClientSecret est une chaine)
+      
+      mTenantId		= psTenantId
+      mClientID		= psCLientID
+      mClientSecret	= psClientSecret
+      
+     type : 589824
+   -
+     name : Destructeur
+     procedure_id : 1718486951378516995
+     type_code : 28
+     code : |1+
+      procédure Destructeur()
+      
+     type : 655360
+   -
+     name : bMailEnvoi
+     procedure_id : 1718487050162854199
+     type_code : 12
+     code : |1-
+      // Résumé : Envoi d'un mail
+      // Syntaxe :
+      //[ <Résultat> = ] bMailEnvoi (<psMailExpediteur> est chaîne, <pasDestinataires> est tableau (chaîne), <pasDestinatairesCopie> est tableau (chaîne), <pasDestinatairesCopieCachee> est tableau (chaîne), <psSujet> est chaîne, <psContenu> est chaîne, <pasFichiersAttaches> est tableau (chaîne), <pbHTML> est booléen, <psErreur> est chaîne)
+      //
+      // Paramètres :
+      //	psMailExpediteur (chaîne ANSI) : Adresse mail de l'expéditeur
+      //	pasDestinataires (tableau (chaîne ANSI)) : Tableau des destinataires
+      //	pasDestinatairesCopie (tableau (chaîne ANSI)) : Tableau des destinataires copies
+      //	pasDestinatairesCopieCachee (tableau (chaîne ANSI)) : Tableau des destinataires copies cachées
+      //	psSujet (chaîne ANSI) : Sujet du mail
+      //	psContenu (chaîne ANSI) : Contenu du mail
+      //	pasFichiersAttaches (tableau (chaîne ANSI)) : Tableau des chemins complets des fichiers à envoyer
+      //	pbHTML (booléen) : Vrai si l'envoi se fait en HTML
+      //	psErreur (chaîne ANSI) : Erreur renvoyée en cas d'échec (renvoyé)
+      
+      // Valeur de retour :
+      // 	booléen : Vrai si ok, faux sinon (psErreur est rempli dans ce cas)
+      //
+      // Exemple :
+      // <Indiquez ici un exemple d'utilisation>
+      //
+      procédure bMailEnvoi(psMailExpediteur est une chaine, pasDestinataires est un tableau de chaine, ...
+      pasDestinatairesCopie est un tableau de chaîne, pasDestinatairesCopieCachee est un tableau de chaîne,...
+      psSujet est une chaine, psContenu est une chaine, pasFichiersAttaches est un tableau de chaine, pbHTML est un booléen, psErreur est une chaine) 
+      
+      bufMessage		est un Buffer
+      httpsRequete	est une restRequête
+      httpsReponse	est une httpRéponse
+      toToken			est un JSON
+      sURI			est une chaine
+      oMessage		est un Email 
+      oAttache		est un emailAttache 
+      bOk				est un booléen
+      
+      
+      bOk = vrai
+      // Requête pour obtenir un token...
+      sURI						= "https://login.microsoftonline.com/%1/oauth2/v2.0/token"
+      httpsRequete..URL			= ChaîneConstruit(sURI, mTenantId)
+      httpsRequete..Méthode		= httpPost
+      httpsRequete..ContentType	= "application/x-www-form-urlencoded"
+      
+      HTTPCréeFormulaire("FORM_TOKEN")
+      HTTPAjouteParamètre("FORM_TOKEN","grant_type","client_credentials")
+      HTTPAjouteParamètre("FORM_TOKEN","client_id",mClientId)
+      HTTPAjouteParamètre("FORM_TOKEN","client_secret", mClientSecret)
+      HTTPAjouteParamètre("FORM_TOKEN","scope","https://graph.microsoft.com/.default")
+      httpsReponse	= HTTPEnvoieFormulaire("FORM_TOKEN",httpsRequete)
+      toToken		= httpsReponse..Contenu
+      
+      //Le token est-il reçu?
+      Si pas toToken.token_type..Existe ALORS
+      	//non
+      	bOk = faux
+      	psErreur = toToken.error + " : " + toToken.error_description
+      FIN
+      
+      //A t on un token?
+      Si bOk alors
+      	//oui 
+      	
+      	//Expéditeur
+      	oMessage..Expediteur = psMailExpediteur
+      	
+      	//Ajouts des destinataires
+      	POUR TOUT sDestinataire de pasDestinataires
+      		Ajoute(oMessage..Destinataire, sDestinataire)
+      	FIN
+      	POUR TOUT sDestinataire de pasDestinatairesCopie
+      		Ajoute(oMessage..Cc, sDestinataire)
+      	FIN
+      	POUR TOUT sDestinataire de pasDestinatairesCopieCachee
+      		Ajoute(oMessage..Cci, sDestinataire)
+      	FIN
+      	
+      	//Contenu du message
+      	oMessage..Sujet=psSujet
+      	Si pbHTML ALORS
+      		oMessage.HTML = psContenu
+      		oMessage..Message	= psContenu
+      	FIN
+      	
+      	//Ajouts des éventuels fichiers
+      	POUR TOUTE sFichier DE pasFichiersAttaches
+      		oAttache.Nom					= fExtraitChemin(sFichier, fFichier + fExtension)
+      		oAttache.Contenu				= fChargeBuffer(sFichier)
+      		Ajoute(oMessage.Attache, oAttache)
+      	FIN
+      	
+      	// Construction d'un buffer de l'email
+      	oMessage.ConstruitSource(emailOptionEncodeEntête + emailOptionEntêteCCi)
+      	bufMessage							= oMessage.Source
+      	bufMessage							= ChaîneVersUTF8(bufMessage.Encode(encodeBASE64)) // (*)
+      	
+      	// URI pour envoyer le message
+      	sURI								= "https://graph.microsoft.com/v1.0/users/%1/sendMail"
+      	sURI								= ChaîneConstruit(sURI, oMessage..Expediteur )
+      	
+      	//Nouvelle requête pour envoyer le mail avec le token d'autorisation
+      	VariableRAZ(httpsRequete)
+      	httpsRequete..URL					= sURI
+      	httpsRequete..Méthode				= httpPost
+      	httpsRequete..ContentType			= "text/plain"
+      	httpsRequete.Entête["Authorization"]	= toToken.token_type + " " + toToken.access_token
+      	httpsRequete.Contenu					= bufMessage
+      	httpsReponse							= RESTEnvoie(httpsRequete)
+      	
+      	//Traitement de la réponse
+      	SI httpsReponse.CodeEtat <> 202 ALORS 
+      		bOk	= faux
+      		psErreur	= "Erreur envoi http " + httpsReponse.CodeEtat + " : " + httpsReponse.DescriptionCodeEtat
+      	sinon
+      		bOk = vrai
+      	FIN
+      fin
+      
+      renvoyer bOk
+     type : 458752
+  procedure_templates : []
+  property_templates : []
+ code_parameters :
+  internal_properties : CAAAAAgAAACVGQgYbalU7DKC3oH4ItDrjtcTHXXV/EuH8q0IbhyQlw==
+  original_name : Classe1
+resources :
+ string_res :
+  identifier : 0x17d94aad000a19a0
+  internal_properties : CAAAAAgAAACm76HWfKGWp33VjXInA4cRlqArlgTTA862QGt72W2ld5Y=
+custom_note :
+ internal_properties : CAAAAAgAAABtB9HWVzrXO2+4NDRVK0vmzaNKrCKqH1DBX30lMmGZ
